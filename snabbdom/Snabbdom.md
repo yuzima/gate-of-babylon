@@ -70,7 +70,7 @@ src
 │   ├── hero.ts           # 处理 transition 动画
 │   ├── module.ts         # 模块接口
 │   ├── props.ts          # DOM properties
-│   └── style.ts          # 样式和动画 
+│   └── style.ts          # 样式和动画
 ├── h.ts                  # `h` 函数，用于创建 vnode
 ├── hooks.ts              # 定义了各种 hooks
 ├── htmldomapi.ts         # 封装了各种 DOM 操作
@@ -164,12 +164,12 @@ export function h(sel: any, b?: any, c?: any): VNode {
     data = b; // 那么 b 就是 VNodeData
     if (is.array(c)) { children = c; } // c 是数组则表示子节点数组 children
     // c 是 string 或 number，该节点就是文本节点，c 为文本节点内容
-    else if (is.primitive(c)) { text = c; } 
-    // c 是 vnode，则 c 为children 数组的唯一子节点 
-    else if (c && c.sel) { children = [c]; } 
+    else if (is.primitive(c)) { text = c; }
+    // c 是 vnode，则 c 为children 数组的唯一子节点
+    else if (c && c.sel) { children = [c]; }
   } else if (b !== undefined) { // 仅有参数 b，判断与前面类似，
     if (is.array(b)) { children = b; }
-    else if (is.primitive(b)) { text = b; } 
+    else if (is.primitive(b)) { text = b; }
     else if (b && b.sel) { children = [b]; }
     else { data = b; } // 若不符合 children 或 text，那么 b 就是 VNodeData
   }
@@ -191,7 +191,7 @@ export function h(sel: any, b?: any, c?: any): VNode {
 
 创建完 VNode 树，接下来需要根据它来生成真正的 HTML Element 树。
 
-####init 和 patch
+#### init 和 patch
 
 初始化函数 `init` 接受初始化的模块列表，返回函数 `patch` 用于更新 vnode。
 
@@ -235,18 +235,18 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
   ...
   return function patch(oldVnode: VNode | Element, vnode: VNode): VNode {
     let i: number, elm: Node, parent: Node;
-    
+
     // 初始化 insertedVnodeQueue
     const insertedVnodeQueue: VNodeQueue = [];
     // 触发所有 `pre` hook 函数
     for (i = 0; i < cbs.pre.length; ++i) cbs.pre[i]();
-      
+
     if (!isVnode(oldVnode)) { // 若 oldVnode 非 Vnode，则将其设置为一个空 Vnode
       oldVnode = emptyNodeAt(oldVnode);
     }
     if (sameVnode(oldVnode, vnode)) { // 若新旧 Vnode 根节点相同
       patchVnode(oldVnode, vnode, insertedVnodeQueue); // 更新子节点
-    } else { 
+    } else {
       // 若新旧 Vnode 根节点不同，则创建新 Element，插入到 oldVnode 父节点下面，
       // 最后从父节点删除 oldVnode
       elm = oldVnode.elm as Node;
@@ -261,7 +261,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
 }
 ```
 
-####patchVnode
+#### patchVnode
 
 `patchVnode` 函数会判断新旧 vnode 类型以及子节点，并根据情况进行最少代价的更新操作。在更新的前后会触发 `prepatch` 和 `postpatch` 钩子函数。
 
@@ -285,11 +285,11 @@ function patchVnode(oldVnode: VNode, vnode: VNode, insertedVnodeQueue: VNodeQueu
   if (oldVnode === vnode) return;
   if (vnode.data !== undefined) {
     // 触发所有模块上的 `update` 钩子函数
-    for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode); 
+    for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode);
     // 触发新 vnode 上定义的 `update` 钩子函数
     i = vnode.data.hook;
     if (isDef(i) && isDef(i = i.update)) i(oldVnode, vnode);
-    
+
     if (isUndef(vnode.text)) { // vnode 非文本节点
       if (isDef(oldCh) && isDef(ch)) {
         if (oldCh !== ch) // 都拥有子节点，则对比更新子节点
@@ -346,7 +346,7 @@ function updateChildren(parentElm: Node,
     let oldKeyToIdx: any; // 键值对为 (oldVnode.key, oldIdx) 的 map 对象
     let idxInOld: number; // oldCh 中查找到相同 key 的位置
     let elmToMove: VNode; // oldCh 中查找到相同 key 的 vnode 节点
-    let before: any; // 
+    let before: any; //
 
     while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
       if (oldStartVnode == null) {
@@ -363,13 +363,13 @@ function updateChildren(parentElm: Node,
         patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue);
         oldStartVnode = oldCh[++oldStartIdx];
         newStartVnode = newCh[++newStartIdx];
-      } 
+      }
       // 比较 oldEndVnode 和 newEndVnode
       else if (sameVnode(oldEndVnode, newEndVnode)) {
         patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue);
         oldEndVnode = oldCh[--oldEndIdx];
         newEndVnode = newCh[--newEndIdx];
-      } 
+      }
       // 比较 oldStartVnode 和 newEndVnode
       else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right
         patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue);
@@ -385,7 +385,7 @@ function updateChildren(parentElm: Node,
         api.insertBefore(parentElm, oldEndVnode.elm as Node, oldStartVnode.elm as Node);
         oldEndVnode = oldCh[--oldEndIdx];
         newStartVnode = newCh[++newStartIdx];
-      } 
+      }
       else {
         if (oldKeyToIdx === undefined) {
           // 创建一个键值对为 (oldVnode.key, oldIdx) 的 map
@@ -425,7 +425,7 @@ function updateChildren(parentElm: Node,
   }
 ```
 
-###Vnode => HTMLElement
+### Vnode => HTMLElement
 
 现在我们已经了解了 snabbdom 是如何对两个节点进行 patch 的，接下来学习 snabbdom 是如何把 vnode 转化为 HTMLElement 的。snabbdom.ts 只有最核心的创建 element 功能，snabbdom 把对 DOM 的处理分散到各个模块里，不同的模块只负责处理 DOM 对应的属性，因此必须在初始化的时候就传入所需要处理的功能模块。
 
@@ -440,7 +440,7 @@ var patch = snabbdom.init([ // 选择模块并初始化 patch
 ]);
 ```
 
-###class.ts
+### class.ts
 
 我们先不研究 updateClass 方法里的具体代码，我们只要知道 updateClass 会对比 oldVnode 和 vnode 里的 class 列表并更新实际的 HTMLElement 的 classList。这里 class.ts 输出了一个对象，这个对象包含两个 hook， `create` 和 `update`，它们都指向 updateClass。
 
@@ -457,7 +457,7 @@ export const classModule = {create: updateClass, update: updateClass} as Module;
 export default classModule;
 ```
 
-###snabbdom.ts
+### snabbdom.ts
 
 前面介绍到 init 的时候需要加载需要的功能模块，每个模块都是用来处理不同的 DOM 属性的，每个模块返回它的 hook 函数对象，这些 hooks 都被记录在了 `cbs` 这个数组里，在处理 DOM 的不同阶段会调用 `cbs` 里记录的该阶段里的所有模块 hook 函数。
 
@@ -493,33 +493,33 @@ function createElm(vnode: VNode, insertedVnodeQueue: VNodeQueue): Node {
   }
   let children = vnode.children, sel = vnode.sel;
   // 如果 sel 为 `!`，这是一个注释标签
-  if (sel === '!') { 
+  if (sel === '!') {
     if (isUndef(vnode.text)) {
       vnode.text = '';
     }
     vnode.elm = api.createComment(vnode.text as string);
-  } 
+  }
   // 存在 sel
-  else if (sel !== undefined) { 
+  else if (sel !== undefined) {
     // 解析 selector
     const hashIdx = sel.indexOf('#');
     const dotIdx = sel.indexOf('.', hashIdx);
     const hash = hashIdx > 0 ? hashIdx : sel.length;
     const dot = dotIdx > 0 ? dotIdx : sel.length;
-    
+
     // 获得 tag
     const tag = hashIdx !== -1 || dotIdx !== -1 ? sel.slice(0, Math.min(hash, dot)) : sel;
     // 根据 tag 创建 element (如果 data 带 namespace，用 createElementNS 创建)
     const elm = vnode.elm = isDef(data) && isDef(i = (data as VNodeData).ns) ? api.createElementNS(i, tag) : api.createElement(tag);
-      
+
     // 如果 selector 带 `#`，设置 id 值为 `#` 后面的内容
     if (hash < dot) elm.setAttribute('id', sel.slice(hash + 1, dot));
     // 如果 selector 带 `.`，设置 class 值为 `.` 后面的内容
     if (dotIdx > 0) elm.setAttribute('class', sel.slice(dot + 1).replace(/\./g, ' '));
-    
+
     // 调用加载的模块里所有的 `create` hook
     for (i = 0; i < cbs.create.length; ++i) cbs.create[i](emptyNode, vnode);
-    
+
     // 循环子节点数组，创建所有非空子节点，并 append 到 elm 下面
     if (is.array(children)) {
       for (i = 0; i < children.length; ++i) {
@@ -533,14 +533,14 @@ function createElm(vnode: VNode, insertedVnodeQueue: VNodeQueue): Node {
     else if (is.primitive(vnode.text)) {
       api.appendChild(elm, api.createTextNode(vnode.text));
     }
-    
+
     // 触发 data 里自定义的 `create` 和 `insert` hook 函数
     i = (vnode.data as VNodeData).hook; // Reuse variable
     if (isDef(i)) {
       if (i.create) i.create(emptyNode, vnode);
       if (i.insert) insertedVnodeQueue.push(vnode);
     }
-  } 
+  }
   // 不存在 sel，创建文本节点作为根节点
   else {
     vnode.elm = api.createTextNode(vnode.text as string);
