@@ -1,10 +1,10 @@
 # preact 源码解析
-preact 是 React 的 3kb 轻量化方案，拥有同样的 ES6 API。
-搭配 `preact-compat` 可以使用任何 react 库。
+preact 是 React 的 3kb 轻量化方案，拥有同样的 ES6 API。
+搭配 `preact-compat` 可以使用任何 react 库。
 
-该文章目的不是为了介绍 preact，而是希望通过解析 preact 代码来学习 react。
-对于学习 react 的新手来说，阅读 preact 代码比直接阅读 react 代码更简单，门槛更低。
-这里不对 VDOM 做具体介绍，想了解 virtual dom 的可以移步 ![snabbdom 源码解析](../snabbdom/snabbdom.md)。
+该文章目的不是为了介绍 preact，而是希望通过解析 preact 代码来学习 react。
+对于学习 react 的新手来说，阅读 preact 代码比直接阅读 react 代码更简单，门槛更低。
+这里不对 VDOM 做具体介绍，想了解 virtual dom 的可以移步 [snabbdom 源码解析](../snabbdom/snabbdom.md)。
 
 ## 代码结构目录
 ```
@@ -19,7 +19,7 @@ src
 ├── clone-element.js
 ├── component.js
 ├── constants.js              # 常量项
-├── h.js                      # 创建 VNode 方法
+├── h.js                      # 创建 VNode 方法
 ├── options.js                # 全局配置参数
 ├── preact.d.ts               # typings 定义
 ├── preact.js                 # 入口文件，输出各种方法
@@ -27,40 +27,40 @@ src
 ├── render-queue.js
 ├── render.js
 ├── util.js                   # 工具方法
-└── vnode.js                  # 输出 VNode 方法
+└── vnode.js                  # 输出 VNode 方法
 ```
 
 ## 源码解析
 
-> preact 源码中使用通过 JSDoc 注释来定义数据结构。目前 typescript 已经支持使用 JSDoc 部分注释来声明类型信息。具体可以参考这篇文章 ![JSDoc support in JavaScript](https://github.com/Microsoft/TypeScript/wiki/JSDoc-support-in-JavaScript)。
+> preact 源码中使用通过 JSDoc 注释来定义数据结构。目前 typescript 已经支持使用 JSDoc 部分注释来声明类型信息。具体可以参考这篇文章 ![JSDoc support in JavaScript](https://github.com/Microsoft/TypeScript/wiki/JSDoc-support-in-JavaScript)。
 
 ### vnode.js
-该文件定义了 VNode 的数据结构，并输出了一个空函数为 VNode。
+该文件定义了 VNode 的数据结构，并输出了一个空函数为 VNode。
 
-preact 的 VNode 数据结构比 Sanbbdom 中的更简单，只有 `nodeName`， `children`，`key`，`attributes` 这四个属性。
+preact 的 VNode 数据结构比 Sanbbdom 中的更简单，只有 `nodeName`， `children`，`key`，`attributes` 这四个属性。
 
 ```javascript
 /**
  * Virtual DOM Node
  * @typedef VNode
  * @property {string | function} nodeName 创建的 DOM 节点标签名
- * @property {Array<VNode | string>} children 子节点
+ * @property {Array<VNode | string>} children 子节点
  * @property {string | number | undefined} key 用于在列表中标识此 VNode
- * @property {object} attributes 该 VNode 的属性
+ * @property {object} attributes 该 VNode 的属性
  */
 export const VNode = function VNode() {};
 ```
 
 ### option.js
-依然是通过 JSDoc 注释定义了 options 的数据结构，并输出空对象为 options。
+依然是通过 JSDoc 注释定义了 options 的数据结构，并输出空对象为 options。
 
-- syncComponentUpdates：如果为 true，prop 变化会触发 component 同步更新，默认为 true
-- vnode：用于处理所有创建的 VNodes 的函数
+- syncComponentUpdates：如果为 true，prop 变化会触发 component 同步更新，默认为 true
+- vnode：用于处理所有创建的 VNodes 的函数
 - afterMount：钩子：挂载组件后
-- afterUpdate：钩子：组件最新一次渲染导致的 DOM 更新后
+- afterUpdate：钩子：组件最新一次渲染导致的 DOM 更新后
 - beforeUnmount：钩子：卸载组件前立即调用
 - debounceRendering：钩子：每次申请 rerender 时都会调用，可以用来做 rerender 防抖
-- event：在任何 Preact 事件监听器之前调用，返回值（如果有）将把被传递给事件监听器的浏览器事件替换掉
+- event：在任何 Preact 事件监听器之前调用，返回值（如果有）将把被传递给事件监听器的浏览器事件替换掉
 
 ```javascript
 /**
@@ -86,7 +86,7 @@ const options = {};
 
 export default options;
 ```
-options 用于设置一些全局的配置，例如，默认情况下 state 变化是异步更新，prop 变化是同步更新，如果你不希望 prop 变化引起组件的同步更新，那么可以通过设置 `options.syncComponentUpdates` 为 false。
+options 用于设置一些全局的配置，例如，默认情况下 state 变化是异步更新，prop 变化是同步更新，如果你不希望 prop 变化引起组件的同步更新，那么可以通过设置 `options.syncComponentUpdates` 为 false。
 ```javascript
 import { options } from 'preact'
 
@@ -100,7 +100,7 @@ options.syncComponentUpdates = false;
 ```html
 <div id="foo" name="bar">Hello!</div>
 ```
-可以用以下函数构建
+可以用以下函数构建
 ```javascript
 h('div', { id: 'foo', name : 'bar' }, 'Hello!');
 ```
@@ -121,7 +121,7 @@ export function h(nodeName, attributes) {
     stack.push(arguments[i]);
   }
   // attributes 包含 children 字段且 stack 还没有添加过子节点参数
-  // 添加 attributes.children 到 stack
+  // 添加 attributes.children 到 stack
   if (attributes && attributes.children!=null) {
     if (!stack.length) stack.push(attributes.children);
     delete attributes.children;
@@ -179,7 +179,7 @@ export {
 ```
 
 ### constants.js
-该文件用于存放一些静态常量，包括 render 模式，用于缓存 props 的 DOM 属性名，以及检测 DOM 属性是否带 `px` 的正则表达式
+该文件用于存放一些静态常量，包括 render 模式，用于缓存 props 的 DOM 属性名，以及检测 DOM 属性是否带 `px` 的正则表达式
 ```javascript
 // 渲染模式
 /** 不对组件进行 re-render */
@@ -206,18 +206,18 @@ import { IS_NON_DIMENSIONAL } from '../constants';
 import { applyRef } from '../util';
 import options from '../options';
 
-/** 这里是一些类型定义... */
+/** 这里是一些类型定义... */
 
-// 创建 node，对于 svg 标签，需要使用 createElementNS 设置 namespace
+// 创建 node，对于 svg 标签，需要使用 createElementNS 设置 namespace
 export function createNode(nodeName, isSvg) {
   /** @type {PreactElement} */
   let node = isSvg ? document.createElementNS('http://www.w3.org/2000/svg', nodeName) : document.createElement(nodeName);
-  // 设置 normalizedNodeName 
+  // 设置 normalizedNodeName
   node.normalizedNodeName = nodeName;
   return node;
 }
 
-// 移除节点
+// 移除节点
 export function removeNode(node) {
   let parentNode = node.parentNode;
   if (parentNode) parentNode.removeChild(node);
@@ -304,7 +304,7 @@ export function setAccessor(node, name, old, value, isSvg) {
  */
 function eventProxy(e) {
   // 前面介绍 options.event 会在任何 Preact 事件监听器之前调用，
-  // 返回值（如果有）将把被传递给事件监听器的浏览器原生 event 替换掉
+  // 返回值（如果有）将把被传递给事件监听器的浏览器原生 event 替换掉
   // 如果 options 设置了 event 处理器，则使用 options.event 对 e 进行替换
   return this._listeners[e.type](options.event && options.event(e) || e);
 }
