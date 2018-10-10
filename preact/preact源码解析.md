@@ -52,7 +52,7 @@ export const VNode = function VNode() {};
 ```
 
 ### option.js
-依然是通过 JSDoc 注释定义了 options 的数据结构，并输出空对象为 options。
+依然是通过 JSDoc 注释定义了 options 的数据结构，并输出空对象为 options。
 
 - syncComponentUpdates：如果为 true，prop 变化会触发 component 同步更新，默认为 true
 - vnode：用于处理所有创建的 VNodes 的函数
