@@ -32,7 +32,7 @@ src
 
 ## 源码解析
 
-> preact 源码中使用通过 JSDoc 注释来定义数据结构。目前 typescript 已经支持使用 JSDoc 部分注释来声明类型信息。具体可以参考这篇文章 ![JSDoc support in JavaScript](https://github.com/Microsoft/TypeScript/wiki/JSDoc-support-in-JavaScript)。
+> preact 源码中使用通过 JSDoc 注释来定义数据结构。目前 typescript 已经支持使用 JSDoc 部分注释来声明类型信息。具体可以参考这篇文章 [JSDoc support in JavaScript](https://github.com/Microsoft/TypeScript/wiki/JSDoc-support-in-JavaScript)。
 
 ### vnode.js
 该文件定义了 VNode 的数据结构，并输出了一个空函数为 VNode。
