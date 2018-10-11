@@ -12,20 +12,20 @@ src
 ├── dom
 │   └── index.js              # DOM 操作
 ├── vdom
-│   ├── component-recycler.js
+│   ├── component-recycler.js # Component 循环器
 │   ├── component.js
-│   ├── diff.js
-│   └── index.js
-├── clone-element.js
-├── component.js
+│   ├── diff.js               # 比较算法
+│   └── index.js              # VNode 的公共方法
+├── clone-element.js          # 复制 VNode
+├── component.js              # 基础 Component 类
 ├── constants.js              # 常量项
 ├── h.js                      # 创建 VNode 方法
 ├── options.js                # 全局配置参数
 ├── preact.d.ts               # typings 定义
 ├── preact.js                 # 入口文件，输出各种方法
 ├── preact.js.flow
-├── render-queue.js
-├── render.js
+├── render-queue.js           # 管理渲染队列
+├── render.js                 # 渲染 JSX 到一个父 Element
 ├── util.js                   # 工具方法
 └── vnode.js                  # 输出 VNode 方法
 ```
@@ -178,41 +178,66 @@ export {
 };
 ```
 
-### constants.js
-该文件用于存放一些静态常量，包括 render 模式，用于缓存 props 的 DOM 属性名，以及检测 DOM 属性是否带 `px` 的正则表达式
+### utils.js
+该文件提供了两个工具函数 `extend` 和 `applyRef`，和一个异步回调函数 `defer`。
 ```javascript
-// 渲染模式
-/** 不对组件进行 re-render */
-export const NO_RENDER = 0;
-/** 同步 re-render 组件及其子节点 */
-export const SYNC_RENDER = 1;
-/** 同步 re-render 组件，即便其生命周期试图阻止 */
-export const FORCE_RENDER = 2;
-/** 使用异步队列 re-render 组件及其子节点 */
-export const ASYNC_RENDER = 3;
-
-// 用于缓存 props 的 DOM 属性名
-export const ATTR_KEY = '__preactattr_';
-
-/** DOM 属性数值不应添加'px' */
-export const IS_NON_DIMENSIONAL = /acit|ex(?:s|g|n|p|$)|rph|ows|mnc|ntw|ine[ch]|zoo|^ord/i;
+// 扩展对象
+export function extend(obj, props) {
+  for (let i in props) obj[i] = props[i];
+  return obj;
+}
+// 设置或更新 Ref
+export function applyRef(ref, value) {
+  if (ref!=null) {
+    if (typeof ref=='function') ref(value);
+    else ref.current = value;
+  }
+}
+// 尽快地异步调用一个函数，如果 Promise 不可用则使用 setTimeout
+// 使用 bind 是因为 const defer = Promise.resolve().then;
+// defer 此时的 this 指向了 global，调用 defer(callback) 会导致报错
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Called_on_incompatible_type
+export const defer = typeof Promise=='function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
 ```
 
 ### dom/index.js
-`dom/index.js` 这个文件提供了一些操作真实 DOM 的方法。因为对 VDOM 的各种操作最终都是要反应到真实的 DOM 里去的。
+`dom/index.js` 这个文件提供了一些操作实际 DOM 的方法。因为对 VDOM 的各种操作最终都是要反应到 DOM 里去的。
 
 ```javascript
 import { IS_NON_DIMENSIONAL } from '../constants';
 import { applyRef } from '../util';
 import options from '../options';
 
-/** 这里是一些类型定义... */
+/** 这里是一些类型定义 */
+/**
+ * DOM event listener
+ * @typedef {(e: Event) => void} EventListner
+ */
+
+/**
+ * event type 到 event listener 的映射表
+ * @typedef {Object.<string, EventListener>} EventListenerMap
+ */
+
+/**
+ * 被添加到 Element 上的 Preact 属性
+ * @typedef PreactElementExtensions
+ * @property {string} [normalizedNodeName] 用于比较的规范节点名
+ * @property {EventListenerMap} [_listeners] 组件添加到此 DOM 节点的事件监听器的映射表
+ * @property {import('../component').Component} [_component] 渲染该 DOM 节点的组件
+ * @property {function} [_componentConstructor] 渲染该 DOM 节点的组件构造函数
+ */
+
+/**
+ * 经过 Preact 属性扩展的 DOM Element
+ * @typedef {Element & ElementCSSInlineStyle & PreactElementExtensions} PreactElement
+ */
 
 // 创建 node，对于 svg 标签，需要使用 createElementNS 设置 namespace
 export function createNode(nodeName, isSvg) {
   /** @type {PreactElement} */
   let node = isSvg ? document.createElementNS('http://www.w3.org/2000/svg', nodeName) : document.createElement(nodeName);
-  // 设置 normalizedNodeName
+  // 设置 normalizedNodeName 为 nodeName
   node.normalizedNodeName = nodeName;
   return node;
 }
@@ -230,7 +255,8 @@ export function setAccessor(node, name, old, value, isSvg) {
   if (name==='key') {
     // ignore
   }
-  // 设置 ref
+  // 设置 Ref
+  // https://reactjs.org/docs/refs-and-the-dom.html
   else if (name==='ref') {
     applyRef(old, null);
     applyRef(value, node);
@@ -309,3 +335,214 @@ function eventProxy(e) {
   return this._listeners[e.type](options.event && options.event(e) || e);
 }
 ```
+
+### vdom/index.js
+该文件提供了几个简单的 vnode 判断方法和获取数据方法
+```javascript
+import { extend } from '../util';
+
+// 比较 PreactElement 和 VNode 是否是相同的类型
+// 如果 hydrating 为 true，则忽略比较组件构造函数
+export function isSameNodeType(node, vnode, hydrating) {
+  if (typeof vnode==='string' || typeof vnode==='number') {
+    return node.splitText!==undefined;
+  }
+  if (typeof vnode.nodeName==='string') {
+    return !node._componentConstructor && isNamedNode(node, vnode.nodeName);
+  }
+  // _componentConstructor 为组件的构造函数
+  return hydrating || node._componentConstructor===vnode.nodeName;
+}
+
+// 检查一个 PreactElement 是否有给定的节点名（大小写不敏感）
+export function isNamedNode(node, nodeName) {
+  // 在 dom/index.js 的 createNode 会设置其 normalizedNodeName 的值等于传入的 nodeName
+  return node.normalizedNodeName===nodeName || node.nodeName.toLowerCase()===nodeName.toLowerCase();
+}
+
+// 获取 node 所有的 props，即 attributes 加上 defaultProps 上的属性
+// defaultProps 上的属性不在 vnode.attributes 上，需要另外获取
+// https://reactjs.org/docs/typechecking-with-proptypes.html#default-prop-values
+export function getNodeProps(vnode) {
+  let props = extend({}, vnode.attributes);
+  props.children = vnode.children;
+
+  let defaultProps = vnode.nodeName.defaultProps;
+  if (defaultProps!==undefined) {
+    for (let i in defaultProps) {
+      if (props[i]===undefined) {
+        props[i] = defaultProps[i];
+      }
+    }
+  }
+
+  return props;
+}
+```
+以上代码已经大致清楚 VNode 的创建流程和操作方法，接下来来分析渲染的流程。
+默认情况下，组件的 state 变化会引起组件异步更新，`Preact` 使用 `render queue` 来管理需要 re-render 的组件们。
+另外还有几种渲染模式，在 `constants.js` 中可以看到。
+
+### constants.js
+该文件用于存放一些静态常量，包括 render 模式，用于缓存 props 的 DOM 属性名，以及检测 DOM 属性是否带 `px` 的正则表达式
+```javascript
+// 渲染模式
+/** 不对组件进行 re-render */
+export const NO_RENDER = 0;
+/** 同步 re-render 组件及其子节点 */
+export const SYNC_RENDER = 1;
+/** 同步 re-render 组件，即便其生命周期试图阻止 */
+export const FORCE_RENDER = 2;
+/** 使用异步队列 re-render 组件及其子节点 */
+export const ASYNC_RENDER = 3;
+
+// 用于缓存 props 的 DOM 属性名
+export const ATTR_KEY = '__preactattr_';
+
+/** DOM 属性数值不应添加'px' */
+export const IS_NON_DIMENSIONAL = /acit|ex(?:s|g|n|p|$)|rph|ows|mnc|ntw|ine[ch]|zoo|^ord/i;
+```
+
+### render-queue.js
+`render-queue.js` 会将所有待更新的组件放入 items 列表，然后默认情况下，使用 `Promise.resolve().then` 异步执行渲染方法。
+
+```javascript
+import options from './options';
+import { defer } from './util';
+import { renderComponent } from './vdom/component';
+
+/**
+ * 需要 re-render 的脏组件队列
+ * @type {Array<import('./component').Component>}
+ */
+let items = [];
+
+/**
+ * 添加一个 component 的 rerender 到队列中
+ * @param {import('./component').Component} component The component to rerender
+ */
+export function enqueueRender(component) {
+  // 设置 component._dirty 状态为 true 并推进队列
+  if (!component._dirty && (component._dirty = true) && items.push(component)==1) {
+    // 把 rerender 作为回调函数传递给 debounceRendering 或者 defer
+    // defer 使用 `Promise.resolve().then` 调用 callback，其作用是尽快异步执行传入的 rerender 函数
+    (options.debounceRendering || defer)(rerender);
+  }
+}
+
+/** Rerender 所有队列中的脏组件 */
+export function rerender() {
+  let p;
+  while ( (p = items.pop()) ) {
+    // renderComponent 实际执行了 re-render 组件的工作
+    if (p._dirty) renderComponent(p);
+  }
+}
+```
+
+### render.js
+该文件输出 render 方法，用于首次将 JSX 渲染到一个父 Element 下。实际上是直接调用了 diff 方法来实现。
+```javascript
+import { diff } from './vdom/diff';
+
+export function render(vnode, parent, merge) {
+  return diff(merge, vnode, {}, false, parent, false);
+}
+```
+使用方法
+```javascript
+render(<div id="hello">hello!</div>, document.body);
+```
+
+### component.js
+在 `React` 中，`Component` 被用来划分不同的 UI 部分，这个文件描述了基础的 `Component` 构造函数。
+```javascript
+import { FORCE_RENDER } from './constants';
+import { extend } from './util';
+import { renderComponent } from './vdom/component';
+import { enqueueRender } from './render-queue';
+
+export function Component(props, context) {
+  // 熟悉的 react 组件几个内部属性，public 变量
+  this.context = context;
+  this.props = props;
+  this.state = this.state || {};
+
+  this._dirty = true;
+  // render 回调队列，记录了 setState 和 forceUpdate 的回调
+  this._renderCallbacks = [];
+}
+
+// 扩展了 setState forceUpdate render 这几个方法
+extend(Component.prototype, {
+  // https://reactjs.org/docs/react-component.html#setstate
+  setState(state, callback) {
+    // 记录 prevState
+    if (!this.prevState) this.prevState = this.state;
+    // 创建了新 Object 合并 this.state 和 state
+    this.state = extend(
+      extend({}, this.state),
+      typeof state === 'function' ? state(this.state, this.props) : state
+    );
+    // _renderCallbacks 记录 回调函数
+    if (callback) this._renderCallbacks.push(callback);
+    enqueueRender(this);
+  },
+
+  // https://reactjs.org/docs/react-component.html#forceupdate
+  forceUpdate(callback) {
+    // _renderCallbacks 记录 回调函数
+    if (callback) this._renderCallbacks.push(callback);
+    // 以 FORCE_RENDER 模式执行组件渲染，将跳过 shouldComponentUpdate 强制同步渲染组件
+    // 但其子组件依然会触发包含 shouldComponentUpdate 在内的正常的生命周期方法
+    renderComponent(this, FORCE_RENDER);
+  },
+
+  // https://reactjs.org/docs/react-component.html#render
+  render() {}
+});
+```
+
+### vdom/component-recycler.js
+`React` 维护了一个组件池以便组件的重用，每当 unmountComponent 时，将会对一部分的组件进行回收。
+
+创建新组件时，如果组件池存在组件的 `constructor` 和与新组件的 `constructor` 一致，则把原来组件的 `nextBase` 赋予给新组件实例。同时从组件池删除掉旧组件。`nextBase` 属性用于存放组件的 DOM 对象，在组件初始化 render 时，component.base 还未设置，nextBase 可以作为备用 DOM 对象进行渲染。
+
+```javascript
+import { Component } from '../component';
+
+export const recyclerComponents = [];
+
+// 创建组件
+export function createComponent(Ctor, props, context) {
+  let inst, i = recyclerComponents.length;
+  // 如果构造函数 Ctor 是一个 Component 类，直接使用 Ctor 创建实例
+  if (Ctor.prototype && Ctor.prototype.render) {
+    inst = new Ctor(props, context);
+    Component.call(inst, props, context);
+  }
+  else {
+    // 否则使用 Component 创建实例，手动指定 constructor，设置 render 为默认 doRender
+    inst = new Component(props, context);
+    inst.constructor = Ctor;
+    inst.render = doRender;
+  }
+
+  // 查找组件池是否有相同的 constructor 的组件，重复利用 nextBase
+  while (i--) {
+    if (recyclerComponents[i].constructor===Ctor) {
+      inst.nextBase = recyclerComponents[i].nextBase;
+      recyclerComponents.splice(i, 1);
+      return inst;
+    }
+  }
+
+  return inst;
+}
+
+/** The `.render()` method for a PFC backing instance. */
+function doRender(props, state, context) {
+  return this.constructor(props, context);
+}
+```
+以上已经把 `Preact` 除了 Component render 以外的内容做了一个介绍，接下来详细分析核心的 Component 操作和 diff 算法部分 => [preact 源码分析 2](./preact源码解析2.md)
