@@ -14,8 +14,8 @@ src
 ├── vdom
 │   ├── component-recycler.js # Component 循环器
 │   ├── component.js
-│   ├── diff.js               # 比较算法
-│   └── index.js              # VNode 的公共方法
+│   ├── diff.js               # 比较算法
+│   └── index.js              # VNode 的公共方法
 ├── clone-element.js          # 复制 VNode
 ├── component.js              # 基础 Component 类
 ├── constants.js              # 常量项
@@ -337,7 +337,7 @@ function eventProxy(e) {
 ```
 
 ### vdom/index.js
-该文件提供了几个简单的 vnode 判断方法和获取数据方法
+该文件提供了几个简单的 vnode 判断方法和获取数据方法
 ```javascript
 import { extend } from '../util';
 
@@ -418,11 +418,11 @@ import { renderComponent } from './vdom/component';
 let items = [];
 
 /**
- * 添加一个 component 的 rerender 到队列中
+ * 添加一个 component 的 rerender 到队列中
  * @param {import('./component').Component} component The component to rerender
  */
 export function enqueueRender(component) {
-  // 设置 component._dirty 状态为 true 并推进队列
+  // 设置 component._dirty 状态为 true 并推进队列
   if (!component._dirty && (component._dirty = true) && items.push(component)==1) {
     // 把 rerender 作为回调函数传递给 debounceRendering 或者 defer
     // defer 使用 `Promise.resolve().then` 调用 callback，其作用是尽快异步执行传入的 rerender 函数
@@ -455,7 +455,7 @@ render(<div id="hello">hello!</div>, document.body);
 ```
 
 ### component.js
-在 `React` 中，`Component` 被用来划分不同的 UI 部分，这个文件描述了基础的 `Component` 构造函数。
+在 `React` 中，`Component` 被用来划分不同的 UI 部分，这个文件描述了基础的 `Component` 构造函数。
 ```javascript
 import { FORCE_RENDER } from './constants';
 import { extend } from './util';
@@ -463,7 +463,7 @@ import { renderComponent } from './vdom/component';
 import { enqueueRender } from './render-queue';
 
 export function Component(props, context) {
-  // 熟悉的 react 组件几个内部属性，public 变量
+  // 熟悉的 react 组件几个内部属性，public 变量
   this.context = context;
   this.props = props;
   this.state = this.state || {};
@@ -479,7 +479,7 @@ extend(Component.prototype, {
   setState(state, callback) {
     // 记录 prevState
     if (!this.prevState) this.prevState = this.state;
-    // 创建了新 Object 合并 this.state 和 state
+    // 创建了新 Object 合并 this.state 和 state
     this.state = extend(
       extend({}, this.state),
       typeof state === 'function' ? state(this.state, this.props) : state
@@ -545,4 +545,4 @@ function doRender(props, state, context) {
   return this.constructor(props, context);
 }
 ```
-以上已经把 `Preact` 除了 Component render 以外的内容做了一个介绍，接下来详细分析核心的 Component 操作和 diff 算法部分 => [preact 源码分析 2](./preact源码解析2.md)
+以上已经把 `Preact` 除了 Component render 以外的内容做了一个介绍，接下来详细分析核心的 Component 操作和 diff 算法部分 => [preact 源码分析 2](./preact源码解析2.md)
