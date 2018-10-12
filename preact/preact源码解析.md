@@ -94,8 +94,7 @@ options.syncComponentUpdates = false;
 ```
 
 ### h.js
-
-通过 .babelrc 配置，代码里返回的 JSX 会被 babel 转换成 `h()`/`createElement()` 来处理。
+通过 .babelrc 配置，指定处理 createElement 方法为 h
 ```
 {
   "plugins": [
@@ -103,14 +102,21 @@ options.syncComponentUpdates = false;
   ]
 }
 ```
-这里的 `h` 方法用于创建 VNode，一个 VNode 树可用来表示 DOM 树的结构。
-```html
-<div id="foo" name="bar">Hello!</div>
-```
-可以用以下函数构建
+代码里返回的 JSX 代码
 ```javascript
-h('div', { id: 'foo', name : 'bar' }, 'Hello!');
+var profile = <div>
+  <img src="avatar.png" className="profile" />
+  <h3>{[user.firstName, user.lastName].join(' ')}</h3>
+</div>;
 ```
+会被 babel 转换成 `createElement` 形式，由于我们指定了 `pragma` 为 `h`，最终代码会被转换成如下形式。
+```javascript
+var profile = h("div", null,
+  h("img", { src: "avatar.png", className: "profile" }),
+  h("h3", null, [user.firstName, user.lastName].join(" "))
+);
+```
+最终变成由 `h()` 来处理，这里的 `h` 方法用于创建 VNode，一个 VNode 树可用来表示 DOM 树的结构。
 
 `h()` 方法接收一个元素名参数 nodeName 和 attributes/props 列表参数，以及可选的子节点元素。
 

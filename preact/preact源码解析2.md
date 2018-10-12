@@ -240,6 +240,7 @@ export function renderComponent(component, renderMode, mountAll, isChild) {
 
   // 当前 diff 递归在第一层，并且 Component 非子组件
   // flushMounts 会排队调用已挂载的组件列表的 componentDidMount 方法
+  // 但此处似乎和 diff 方法里的 flushMounts 重复了？目前还未确认
   if (!diffLevel && !isChild) flushMounts();
 }
 ```
