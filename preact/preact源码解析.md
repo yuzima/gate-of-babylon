@@ -95,8 +95,15 @@ options.syncComponentUpdates = false;
 
 ### h.js
 
+通过 .babelrc 配置，代码里返回的 JSX 会被 babel 转换成 `h()`/`createElement()` 来处理。
+```
+{
+  "plugins": [
+    ["transform-react-jsx", { "pragma":"h" }]
+  ]
+}
+```
 这里的 `h` 方法用于创建 VNode，一个 VNode 树可用来表示 DOM 树的结构。
-
 ```html
 <div id="foo" name="bar">Hello!</div>
 ```
@@ -114,6 +121,14 @@ import options from './options';
 const stack = []; // 子节点元素堆栈
 const EMPTY_CHILDREN = [];
 
+/**
+ * @param {string | function} nodeName An element name. Ex: `div`, `a`, `span`, etc.
+ * @param {object | null} attributes Any attributes/props to set on the created element.
+ * @param {VNode[]} [rest] Additional arguments are taken to be children to
+ *  append. Can be infinitely nested Arrays.
+ *
+ * @public
+ */
 export function h(nodeName, attributes) {
   let children=EMPTY_CHILDREN, lastSimple, child, simple, i;
   // 有子节点参数，添加到 stack 里
