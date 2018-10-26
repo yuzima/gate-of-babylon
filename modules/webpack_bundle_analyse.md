@@ -103,13 +103,18 @@ function Foo() {
 /** ./src/index.js **/
 __webpack_require__.r(__webpack_exports__);  // 同样先设置该模块的 export 模式为 ES6 Modules
 /* harmony import */
-// 创建了一个变量，来获取 'Foo' 模块的 export 对象
+// 创建了一个变量，使用 __webpack_require__ 来加载 'Foo' 模块的 export 对象
 var _Foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Foo */ "./src/Foo.js");
 // 调用 export 对象 default 属性返回的 Foo 上的 sayHi 方法
 _Foo__WEBPACK_IMPORTED_MODULE_0__["default"].sayHi();
 ```
 
-这里我们大概已经能了解到 webpack 模块化是怎么运作的了，接着我们再看下具体逻辑。
+这里我们大概已经能了解到 webpack 模块化是怎么运作的了，接着我们再看下具体逻辑：
+
+1. webpack 启动后先初化一个模块缓存对象
+2. 然后定义了最核心的模块加载函数 **\_\_webpack_require\_\_**。
+3. 在 **\_\_webpack_require\_\_** 暴露了一些方法和对象。
+4. 最后使用 **\_\_webpack_require\_\_** 加载入口文件所对应的模块，并返回入口模块 export 输出的值。
 
 ```javascript
 function(modules) {
@@ -213,12 +218,12 @@ function(modules) {
   // __webpack_public_path__
   __webpack_require__.p = "";
 
-  // 最后加载入口文件模块 './src/index.js' 并返回 exports
+  // 加载入口文件模块 './src/index.js' 并返回 exports
   return __webpack_require__((__webpack_require__.s = "./src/index.js"));
 }
 ```
 
-以上这就是一个非常简单的 webpack ES6 Modules 实现。
+以上这就是一个非常简单的 webpack ES6 Modules 实现。整体逻辑就是从入口文件模块开始加载，入口文件代码中遇到 \_\_webpack_require\_\_() 代码时就去加载执行对应的模块。
 
 ## Webpack 如何实现异步加载？
 
