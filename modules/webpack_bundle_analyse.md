@@ -64,14 +64,14 @@ Foo.sayHi();
 );
 ```
 
-简单分析一下结构就是，webpack 创建了一个立即执行函数，这个函数接收一个参数 **modules**。在代码的下方，把我们定义的两个文件的内容作为参数传给了立即执行函数。**key** 为文件的路径，**value** 为一个函数，这个函数接收三个参数，分别表示：
+简单分析一下结构就是，webpack 创建了一个立即执行函数，这个函数接收一个参数 **modules**。在代码的下方，把我们定义的两个文件的内容作为参数传给了立即执行函数。**key** 为文件的路径，**value** 为一个函数，这个函数接收三个参数，分别表示：
 - module：该文件对应的模块对象
 - \_\_webpack_exports]\_\_：保存了该模块的 export 的对象
 - \_\_webpack_require\_\_：保存了该模块 import 的对象
 
 函数仅仅包含了一条 `eval` 语句，整理一下 `eval` 的内容看下。
 
-先来看 **./src/Foo.js** 的 `eval`，后面部分和 ./src/Foo.js 中的内容一致就是 Foo 函数的声明。
+先来看 **./src/Foo.js** 的 `eval`，后面部分和 ./src/Foo.js 中的内容一致就是 Foo 函数的声明。
 前面部分就是 webpack 编译的 `export` 的结果。
 
 ```javascript
@@ -97,7 +97,7 @@ function Foo() {
 }
 ```
 
-接着看 **./src/indx.js** 的 `eval`
+接着看 **./src/indx.js** 的 `eval`
 
 ```javascript
 /** ./src/index.js **/
