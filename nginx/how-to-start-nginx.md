@@ -128,3 +128,58 @@ user yuzi staff
 ```
 
 > 如果遇到其他的错误，请查看 access.log 和 error.log
+
+## 反向代理
+
+nginx 一个常用的方式是作为 proxy server 来接收客户端的请求，转发到不同的 server，然后将 response 返回给客户端。这个过程被称之为反向代理，而通过客户端代理的过程则被称为正向代理。
+
+将上面的例子改写为反向代理，这里需要添加一个新的 server，用于服务另一个使用 docz 实现的文档网站。
+
+```bash
+server {
+  listen       8001;
+  server_name  localhost;
+  root   /Users/yuzi/Documents/workspace/jscodes/docz-demo/.docz/dist;
+}
+```
+
+然后我们需要添加一个用于转发请求的 proxy server，使用 `proxy_pass` 将不同的路由代理到不同应用的路径下，达到反向代理的目的。
+
+> 注意设置 proxy_pass 时需要用 `/` 结尾，表示该应用是一个目录。
+
+```bash
+server {
+  # 将 / 路径转发到 my-react-demo
+  location / {
+    proxy_pass http://localhost:8000/;
+  }
+
+  # 将 /docz/ 路径转发到 docz 应用
+  location /docz/ {
+    proxy_pass http://localhost:8001/;
+  }
+
+  # 将 /static/ 路径转发到 docz 下的 static
+  location /static/ {
+    proxy_pass http://localhost:8001/static/;
+  }
+}
+```
+
+重启 nginx 后，就能够在 localhost 下访问两个 server 却不需要修改 port，由此可以看出，通过 nginx 的反向代理，可以实现了在前端层面上的跨域。除了代理本地的服务之外，我们还可以代理到其他线上的服务。例如我们可以将 **/github/** 这个路由代理到 **https://api.github.com**。
+
+```bash
+server {
+  # 将 /github/ 路径转发到 api.github.com
+  location /github/ {
+    proxy_pass https://api.github.com/;
+  }
+}
+```
+
+现在我们在访问 http://localhost/github/ 时会自动代理到 https://api.github.com 的页面。同时因为代理是通过 nginx 实现的，浏览器并没有经历跨域，因此也不会出现跨域的问题。
+
+## 负载均衡
+
+
+
