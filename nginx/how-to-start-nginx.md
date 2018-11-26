@@ -133,43 +133,21 @@ user yuzi staff
 
 nginx 一个常用的方式是作为 proxy server 来接收客户端的请求，转发到不同的 server，然后将 response 返回给客户端。这个过程被称之为反向代理，而通过客户端代理的过程则被称为正向代理。
 
-将上面的例子改写为反向代理，这里需要添加一个新的 server，用于服务另一个使用 docz 实现的文档网站。
+通过 nginx 的反向代理，可以实现了在前端层面上的跨域。除了代理本地的服务之外，我们还可以代理到其他线上的服务。例如我们可以将 **/github/** 这个路由代理到 **https://api.github.com**。
 
 ```bash
 server {
   listen       8001;
   server_name  localhost;
-  root   /Users/yuzi/Documents/workspace/jscodes/docz-demo/.docz/dist;
+  root   /Users/yuzi/Documents/workspace/jscodes/my-react-demo/build;
 }
-```
 
-然后我们需要添加一个用于转发请求的 proxy server，使用 `proxy_pass` 将不同的路由代理到不同应用的路径下，达到反向代理的目的。
-
-> 注意设置 proxy_pass 时需要用 `/` 结尾，表示该应用是一个目录。
-
-```bash
 server {
-  # 将 / 路径转发到 my-react-demo
+  # 将默认路由 / 代理到 localhost:8001
   location / {
-    proxy_pass http://localhost:8000/;
+    proxy_pass http://localhost:8001/
   }
 
-  # 将 /docz/ 路径转发到 docz 应用
-  location /docz/ {
-    proxy_pass http://localhost:8001/;
-  }
-
-  # 将 /static/ 路径转发到 docz 下的 static
-  location /static/ {
-    proxy_pass http://localhost:8001/static/;
-  }
-}
-```
-
-重启 nginx 后，就能够在 localhost 下访问两个 server 却不需要修改 port，由此可以看出，通过 nginx 的反向代理，可以实现了在前端层面上的跨域。除了代理本地的服务之外，我们还可以代理到其他线上的服务。例如我们可以将 **/github/** 这个路由代理到 **https://api.github.com**。
-
-```bash
-server {
   # 将 /github/ 路径转发到 api.github.com
   location /github/ {
     proxy_pass https://api.github.com/;
@@ -177,9 +155,115 @@ server {
 }
 ```
 
-现在我们在访问 http://localhost/github/ 时会自动代理到 https://api.github.com 的页面。同时因为代理是通过 nginx 实现的，浏览器并没有经历跨域，因此也不会出现跨域的问题。
+现在我们在访问 http://localhost/github/ 时会自动代理到 https://api.github.com 的页面。同时因为代理是通过 nginx 实现的，浏览器并没有经历跨域，因此也不会出现跨域的问题，这也是反向代理的一个作用。
 
-## 负载均衡
+## HTTPS
 
+先使用 [mkcert](https://github.com/FiloSottile/mkcert) 创建一个本地的 HTTPS 证书，按照说明安装好。
+使用 mkcert 创建一个本地证书。
 
+```bash
+> mkcert -install
+Created a new local CA at "/Users/yuzi/Library/Application Support/mkcert" 💥
+Password:
+The local CA is now installed in the system trust store! ⚡️
+```
+
+nginx 配置 HTTPS 需要在 listen 的端口后面加 `ssl` 标志。同时必须配置 `server_certificate` 和 `private_key`。
+
+```bash
+  listen              443 ssl;
+  server_name  localhost;
+  ssl_certificate     "/Users/yuzi/Library/Application Support/mkcert/localhost+2.pem";
+  ssl_certificate_key "/Users/yuzi/Library/Application Support/mkcert/localhost+2-key.pem";
+  ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+  ssl_ciphers         HIGH:!aNULL:!MD5;
+```
+
+服务器证书 `certificate` 是一个公开的证书，它会被发送给每个连接到服务器的客户端。私钥 `private key` 是一个安全的实体应存储在具有受限访问权限的文件中，但是 nginx 主进程要能读取到它。私钥也可被存放在和证书同样的文件里，这个文件的访问也是受限的：
+
+```bash
+  ssl_certificate     www.example.com.cert;
+  ssl_certificate_key www.example.com.cert;
+```
+
+这种情况下，虽然私钥和证书在同一文件下，只有证书会被发送给客户端。
+
+`ssl_protocols` 和 `ssl_ciphers` 用于限制连接使用 SSL / TLS 的强版本和密码。默认情况下 nginx 使用 “ssl_protocols TLSv1 TLSv1.1 TLSv1.2” 和 “ssl_ciphers HIGH:!aNULL:!MD5”，所以没有必要显式配置它们，这两项的默认值也曾经几次被改变过。
+
+### HTTPS 优化
+
+SSL 操作会消耗 CPU 资源。在多处理器系统上，应运行多个工作进程，不少于可用 CPU 最 CPU 密集型的操作是 SSL 握手，有两种方法可以最大限度地减少每个客户端的这些操作数量。第一种是通过启用 keepalive 连接来通过一个连接发送多个请求，第二个是重用 SSL session 参数以避免并行 SSL 握手和后续的连接。
+
+session 存储在工作线程之间共享的 SSL session 高速缓存中，并由 `ssl_session_cache` 指令配置。一兆字节的缓存包含大约 4000 个会话。默认的 cache 过期时间是 5 分钟，可以使用 `ssl_session_timeout` 增加，
+
+```bash
+worker_processes auto;
+
+http {
+  ssl_session_cache   shared:SSL:10m;
+  ssl_session_timeout 10m;
+
+  server {
+    listen              443 ssl;
+    server_name         www.example.com;
+    keepalive_timeout   70;
+
+    ssl_certificate     www.example.com.crt;
+    ssl_certificate_key www.example.com.key;
+    ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ...
+```
+
+## HTTP2
+
+nginx 1.9.5 开始提供了 `ngx_http_v2_module` 模块，开启配置如下：
+
+```bash
+server {
+  listen 443 ssl http2;
+  ssl_certificate     "/Users/yuzi/Library/Application Support/mkcert/localhost+2.pem";
+  ssl_certificate_key "/Users/yuzi/Library/Application Support/mkcert/localhost+2-key.pem";
+}
+```
+
+此时在 chrome 的 devtool 里可以看到请求的 protocal 就是 h2。
+
+### 其他的 http2 配置
+
+```bash
+# 在开始处理每个请求的请求主体之前，可以保存请求主体的缓冲区大小
+http2_body_preread_size size;
+
+# 响应主体被分块的最大大小。值太低会导致更高的开销。太高的值会由于 HOL 阻塞损害优先级
+http2_chunk_size size;
+
+# 关闭连接之后的不活动超时时间
+http2_idle_timeout time;
+
+# 限制连接中的最大并发推送请求数
+http2_max_concurrent_pushes number;
+
+# 连接中的最大并发 HTTP2 流数
+http2_max_concurrent_streams number;
+
+# 限制 HPACK 压缩请求标头字段的最大大小
+http2_max_field_size size;
+
+# 限制整个请求头在 HPACK 解压缩后的最大大小，默认值通常是足够的
+http2_max_header_size size
+
+# 预先地将请求推送到指定的 uri 以及对原始请求的响应。仅处理绝对路径的 URI，例如：http2_push /static/css/main.css;
+http2_push uri | off;
+
+# 允许将 Link 标签中指定的预加载链接自动转换为推送请求。
+http2_push_preload on | off;
+
+# 每个工作进程输入缓冲区的大小
+http2_recv_buffer_size size;
+
+# 从客户端获取更多数据的超时时间，之后关闭连接
+http2_recv_timeout time;
+```
 

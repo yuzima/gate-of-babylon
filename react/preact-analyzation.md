@@ -156,6 +156,7 @@ export function h(nodeName, attributes) {
     // 特殊类型子节点的处理
     else {
       if (typeof child==='boolean') child = null;
+      // simple 表示 nodeName 是一个 tag name 而非 React Component
       if ((simple = typeof nodeName!=='function')) {
         if (child==null) child = '';
         else if (typeof child==='number') child = String(child);
