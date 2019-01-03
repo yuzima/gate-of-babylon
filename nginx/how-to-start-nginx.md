@@ -107,7 +107,7 @@ server {
 
 另外需要注意的是 **my-react-demo/build** 的权限问题。这里 **my-react-demo/build** 放置在用户所属目录下，默认情况下 nginx 启用用户默认是 nginx 的，对目录没有读的权限，这样浏览器会报 403 错误。可以选择修改目录的权限或者把 nginx 启动用户改为目录的所属用户，推荐直接修改 nginx 的启动用户这样不用每次修改目录权限。
 
-通过 ls 可以看到目录所属用户 yuzi，所属群组是 staff
+通过 ls 可以看到目录所属用户 yuzi，所属群组是 staff
 
 ```bash
 > ls -l
@@ -127,7 +127,7 @@ drwxr-xr-x  5 yuzi  staff   160 11 20 08:55 static
 user yuzi staff
 ```
 
-> 如果遇到其他的错误，请查看 access.log 和 error.log
+> 如果遇到其他的错误，请查看 access.log 和 error.log
 
 ## 反向代理
 
@@ -193,7 +193,7 @@ nginx 配置 HTTPS 需要在 listen 的端口后面加 `ssl` 标志。同时必�
 
 ### HTTPS 优化
 
-SSL 操作会消耗 CPU 资源。在多处理器系统上，应运行多个工作进程，不少于可用 CPU 最 CPU 密集型的操作是 SSL 握手，有两种方法可以最大限度地减少每个客户端的这些操作数量。第一种是通过启用 keepalive 连接来通过一个连接发送多个请求，第二个是重用 SSL session 参数以避免并行 SSL 握手和后续的连接。
+SSL 操作会消耗 CPU 资源。在多处理器系统上，应运行多个工作进程，最 CPU 密集型的操作是 SSL 握手，有两种方法可以最大限度地减少每个客户端的这些操作数量。第一种是通过启用 keepalive 连接来通过一个连接发送多个请求，第二个是重用 SSL session 参数以避免并行 SSL 握手和后续的连接。
 
 session 存储在工作线程之间共享的 SSL session 高速缓存中，并由 `ssl_session_cache` 指令配置。一兆字节的缓存包含大约 4000 个会话。默认的 cache 过期时间是 5 分钟，可以使用 `ssl_session_timeout` 增加，
 
