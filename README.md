@@ -20,6 +20,8 @@
 
 [除了 webpack 以外的其他模块化解决方案 —— system.js](./modules/systemjs.md)
 
+[ESM 里的循环依赖](./modules/circular-dependency.md)
+
 ## Nginx
 
 [开始使用 nginx](./nginx/how-to-start-nginx.md)
