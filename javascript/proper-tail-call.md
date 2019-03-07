@@ -19,10 +19,10 @@
 
 ```javascript
 "use strict"
-function gcd(m, n) {
+function factorial(n) {
   if (!n)
-    return m
-  return gcd(n, m % n)
+    return 1
+  return n * factorial(n - 1)
 }
 ```
 
@@ -30,10 +30,10 @@ function gcd(m, n) {
 
 ```javascript
 "use strict"
-function factorial(n) {
+function gcd(m, n) {
   if (!n)
-    return 1
-  return n * factorial(n - 1)
+    return m
+  return gcd(n, m % n)
 }
 ```
 
@@ -84,11 +84,11 @@ let factorial = (n , acc = 1) =>
 
 #### 性能
 
-一些实现者和开发人员认为，PTC 是一种优惠策略，通过 PTC，引擎将使代码运行地更快。JSC 团队的实现验证了这一信念，该实现在某些情况下显示了一些性能上的优势。然而 V8 团队认为这个信念是不靠谱的，V8 团队认为其和性能无关，而 Chakra 团队则认为，由于一些其他方面的限制，他们可能无法在不降低现有代码性能的情况下实现这一特性。
+一些实现者和开发人员认为，PTC 是一种优惠策略，通过 PTC，引擎将使代码运行地更快。JSC 团队的实现验证了这一信念，该实现在某些情况下显示了一些性能上的优势。但是 V8 团队认为这个信念是不靠谱的，V8 团队认为这和性能无关，而 Chakra 团队则认为，由于一些其他方面的限制，他们可能无法在不降低现有代码性能的情况下实现这一特性。
 
 #### 开发者工具
 
-开发人员非常依赖调用堆栈来调试代码，实现 PTC 将导致许多帧丢失。这个问题可以通过实现某种形式的影子堆栈来减轻（例如 JSC 的 ShadowChicken），它维护了一个可以在调试期间显示给用户的侧 stack frame。但是这也是有代价的，它可能只有在开发工具打开时才会启用（因此不能解决下面 Error.stack 的问题）。它也不是解决潜在问题的灵丹妙药，比如在调试工作流时导致垃圾回收的不确定性。
+开发人员非常依赖调用堆栈来调试代码，实现 PTC 将导致许多帧丢失。这个问题可以通过实现某种形式的影子堆栈来减轻（例如 JSC 的 ShadowChicken），它维护了一个可以在调试期间显示给用户的侧 stack frame。但是这也是有代价的，它可能只有在开发者工具打开时才会启用（因此不能解决下面 Error.stack 问题）。它也不是解决潜在问题的灵丹妙药，比如在调试工作流时导致垃圾回收的不确定性。
 
 例如下面的例子：
 
