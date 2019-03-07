@@ -25,3 +25,7 @@
 ## Nginx
 
 [开始使用 nginx](./nginx/how-to-start-nginx.md)
+
+## ECMAScript 6
+
+[尾递归优化](./javascript/proper-tail-call.md)
