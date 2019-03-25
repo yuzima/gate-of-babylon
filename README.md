@@ -1,5 +1,8 @@
 # Gate of Babylon
 
+## HTTP
+[GET 请求可以发送 body 吗](./http/get_with_body.md)
+
 ## NPM
 [npm 版本冲突](./npm/npm-version-collision.md)
 
