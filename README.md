@@ -41,3 +41,5 @@
 ## Typescript
 
 [Practical advanced feathures](./typescript/practical_advanced_features.md)
+
+[Strict Property Check](./typescript/strict_property_check.md)
