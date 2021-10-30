@@ -10,9 +10,9 @@
 
 ## Snabbdom
 
-[Snabbdom 源码解析](./snabbdom/snabbdom.md)
+[Snabbdom 源码解析](./snabbdom/Snabbdom.md)
 
-[Snabbdom 源码解析 2](./snabbdom/snabbdom2.md)
+[Snabbdom 源码解析 2](./snabbdom/Snabbdom2.md)
 
 ## React
 
@@ -43,3 +43,11 @@
 [Practical advanced feathures](./typescript/practical_advanced_features.md)
 
 [Strict Property Check](./typescript/strict_property_check.md)
+
+## Linux
+
+[Use Grep for Fast Search from Command Line](./linux/grep-command.md)
+
+## Observable 
+
+[Understanding Observable and RxJS](./observable/understand-observable-and-rxjs.md)
